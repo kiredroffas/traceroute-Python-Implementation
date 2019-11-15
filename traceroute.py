@@ -68,7 +68,7 @@ def trace():
     # Print route/host/hops information
     print("traceroute to " + str(route) + ' (' + str(dest_ip) + '), ' + str(hops) + " hops max\n")
     print("# of hops    RTT 1st packet    RTT 2nd packet    RTT 3rd packet    router IP")
-    
+
     # Start traceroute() routine
     info_string = ''
     packets_sent = 0  # Want to send a total of 3 packets for each TTL
@@ -126,11 +126,11 @@ def trace():
         else:
             print(str(ttl) + '   *         *         *         *')
 
-        # If three packets have been sent (and three RTT's calculated)
+        # If three packets have been sent (and three RTT's calculated) increase TTL by 1
         if packets_sent == 3:
             ttl += 1
 
-        # Break if router hop limit exceeded
+        # Break if TTL has exceeded specified hop limit
         if ttl > hops:
             break
 
