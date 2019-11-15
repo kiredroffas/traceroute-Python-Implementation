@@ -16,17 +16,16 @@ def create_receiver(port):
         type=socket.SOCK_RAW,
         proto=socket.IPPROTO_ICMP
     )
-
     # Build a timeval struct (seconds, microseconds)
     timeout = struct.pack("ll", 5, 0)
     # Set the recieve timeout (SO_RCVTIMEO) so receiver does not hang on long responses
     s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, timeout)
-
+    # Bind the receiver socket to a random unused port
     try:
         s.bind(('', port))
     except socket.error:
         print('Unable to bind receiver socket')
-
+    # Return receiver socket
     return s
 
 # Creates a sender socket using the UDP datagram protocol
@@ -36,12 +35,12 @@ def create_sender(ttl):
         type=socket.SOCK_DGRAM,
         proto=socket.IPPROTO_UDP
     )
-
+    # Set the Time To Live (TTL) on the UDP packet to be sent
     s.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
-
+    # Return sender socket
     return s
 
-# Main function
+# Main function that runs traceroute initialization and routine
 def trace():
     # Exit if a route to trace isn't specified
     if len(sys.argv) != 2 :
@@ -54,7 +53,7 @@ def trace():
     hops = 30
     ttl = 1
 
-    # Pick a random port to bind to in the range of 33434-33534
+    # Choose a random port in the range of 33434-33534 to bind receiver to
     port = random.choice(range(33434, 33535))
 
     # Attempt to get the host (IP) of the specified route
@@ -62,13 +61,14 @@ def trace():
     try:
         dest_ip = socket.gethostbyname(route)
     except socket.error:
-        print("Error: Unable to get host for specified route")
+        print("Error: Unable to get host for specified route : " + socket.error)
         exit()
     print("Host '" + dest_ip + "' discovered successfully")
 
     # Print route/host/hops information
-    print("traceroute to {} ({}), {} hops max".format(route, dest_ip, hops))
-
+    print("traceroute to " + str(route) + ' (' + str(dest_ip) + '), ' + str(hops) + " hops max\n")
+    print("# of hops    RTT 1st packet    RTT 2nd packet    RTT 3rd packet    router IP")
+    
     # Start traceroute() routine
     info_string = ''
     packets_sent = 0  # Want to send a total of 3 packets for each TTL
@@ -96,7 +96,7 @@ def trace():
             end_time = time.time()
         # If ICMP response could not be received, error
         except socket.error:
-            print("socket receive error")
+            print("no data recieved from socket")
             pass
         
         # Close the receiver and sender sockets
@@ -113,17 +113,18 @@ def trace():
 
             # Format route and transmission delays of packets into single string to be printed once 3 packets are sent w/ same TTL
             if packets_sent == 1:
-                info_string = ('{}  {} ms').format(ttl, rtt)
+                info_string = (str(ttl) + '            ' + str(rtt) + ' ms')
             elif packets_sent == 2:
-                info_string += ('  {} ms').format(rtt)
+                info_string += ('            ' + str(rtt) + ' ms')
             elif packets_sent == 3:
-                info_string += ('  {} ms  ({})').format(rtt, addr[0])
+                info_string += ('           ' + str(rtt) + ' ms           (' + str(addr[0]) + ')')
                 print(info_string)
-                # break if destination route has been reached
-                if addr[0] == dest_ip:
-                    break  
+
+            # break if destination route has been reached
+            if addr[0] == dest_ip:
+                break  
         else:
-            print('{} *'.format(ttl))
+            print(str(ttl) + '   *         *         *         *')
 
         # If three packets have been sent (and three RTT's calculated)
         if packets_sent == 3:
